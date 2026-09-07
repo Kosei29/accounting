@@ -18,6 +18,7 @@ export interface Account {
   opening_balance: number
   opening_balance_date: string
   description: string | null
+  is_system: boolean
   created_at: string
   updated_at: string
 }
@@ -53,6 +54,45 @@ export interface Transaction {
 
 export interface AccountBalance extends Account {
   balance: number
+}
+
+export interface Receivable {
+  id: string
+  owner_id: string
+  person: string
+  original_amount: number
+  balance: number
+  lent_date: string
+  due_date: string | null
+  notes: string | null
+  status: 'active' | 'paid' | 'cancelled'
+}
+
+export interface Debt {
+  id: string
+  owner_id: string
+  name: string
+  creditor: string
+  original_amount: number
+  balance: number
+  incurred_date: string
+  due_date: string | null
+  notes: string | null
+  status: 'active' | 'paid' | 'cancelled'
+}
+
+export interface Loan {
+  id: string
+  owner_id: string
+  name: string
+  lender: string
+  principal: number
+  balance: number
+  interest_rate: number
+  start_date: string
+  due_date: string | null
+  notes: string | null
+  status: 'active' | 'paid' | 'cancelled'
 }
 
 export interface PostTransactionInput {
