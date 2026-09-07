@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function Login() {
@@ -34,7 +34,7 @@ export function Login() {
           <button disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}</button>
         </form>
         {message && <p className="form-message">{message}</p>}
-        <button className="link-button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+        <button type="button" className="link-button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
           {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
         </button>
       </section>
