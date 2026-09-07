@@ -8,19 +8,22 @@ import { Transactions } from './pages/Transactions'
 function ProtectedLayout() {
   const { session, loading, signOut } = useAuth()
   const navigate = useNavigate()
-  if (loading) return <div className="loading">Loading…</div>
+  if (loading) return <div className="loading">Loading your ledger…</div>
   if (!session) return <Navigate to="/login" replace />
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="logo">Accounting</div>
+      <div className="logo">
+        <div className="logo-mark">₱</div>
+        <div>Accounting<span className="logo-sub">Personal ledger</span></div>
+      </div>
       <nav>
-        <NavLink to="/">Dashboard</NavLink>
-        <NavLink to="/accounts">Accounts</NavLink>
-        <NavLink to="/transactions">Transactions</NavLink>
+        <NavLink to="/"><span>⌂</span>Dashboard</NavLink>
+        <NavLink to="/accounts"><span>◫</span>Accounts</NavLink>
+        <NavLink to="/transactions"><span>↕</span>Transactions</NavLink>
       </nav>
       <div className="sidebar-bottom">
-        <span className="muted">{session.user.email}</span>
+        <span className="sidebar-user">{session.user.email}</span>
         <button className="secondary" onClick={async () => { await signOut(); navigate('/login') }}>Sign out</button>
       </div>
     </aside>
