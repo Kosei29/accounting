@@ -4,6 +4,9 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Accounts } from './pages/Accounts'
 import { Transactions } from './pages/Transactions'
+import { Receivables } from './pages/Receivables'
+import { Debts } from './pages/Debts'
+import { Loans } from './pages/Loans'
 
 function ProtectedLayout() {
   const { session, loading, signOut } = useAuth()
@@ -21,13 +24,24 @@ function ProtectedLayout() {
         <NavLink to="/"><span>⌂</span>Dashboard</NavLink>
         <NavLink to="/accounts"><span>◫</span>Accounts</NavLink>
         <NavLink to="/transactions"><span>↕</span>Transactions</NavLink>
+        <NavLink to="/receivables"><span>↗</span>Receivables</NavLink>
+        <NavLink to="/debts"><span>↘</span>Debts</NavLink>
+        <NavLink to="/loans"><span>▣</span>Loans</NavLink>
       </nav>
       <div className="sidebar-bottom">
         <span className="sidebar-user">{session.user.email}</span>
         <button className="secondary" onClick={async () => { await signOut(); navigate('/login') }}>Sign out</button>
       </div>
     </aside>
-    <main className="content"><Routes><Route path="/" element={<Dashboard />} /><Route path="/accounts" element={<Accounts />} /><Route path="/transactions" element={<Transactions />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main>
+    <main className="content"><Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/accounts" element={<Accounts />} />
+      <Route path="/transactions" element={<Transactions />} />
+      <Route path="/receivables" element={<Receivables />} />
+      <Route path="/debts" element={<Debts />} />
+      <Route path="/loans" element={<Loans />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes></main>
   </div>
 }
 
