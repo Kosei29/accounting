@@ -1,9 +1,9 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Account, AccountType } from '../types/database.types'
 import { useAuth } from '../features/auth/AuthProvider'
 
-const types: AccountType[] = ['cash', 'bank', 'ewallet', 'savings', 'investment', 'credit_card', 'loan', 'other_asset', 'other_liability']
+const types: AccountType[] = ['cash', 'bank', 'ewallet', 'savings', 'investment', 'credit_card', 'loan', 'other_asset', 'other_liability', 'income', 'expense']
 
 export function Accounts() {
   const { session } = useAuth()
