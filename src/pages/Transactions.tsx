@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Account, Category, Transaction, TransactionType } from '../types/database.types'
 import { useAuth } from '../features/auth/AuthProvider'
@@ -26,9 +26,10 @@ export function Transactions() {
     setTransactions((tx ?? []) as Transaction[])
     setAccounts((ac ?? []) as Account[])
     setCategories((cat ?? []) as Category[])
-    if (!account && ac?.[0]) setAccount(ac[0].id)
-    if (!fromAccount && ac?.[0]) setFromAccount(ac[0].id)
-    if (!toAccount && ac?.[1]) setToAccount(ac[1].id)
+    const assetAccounts = (ac ?? []).filter(a => !['income', 'expense'].includes(a.account_type))
+    if (!account && assetAccounts[0]) setAccount(assetAccounts[0].id)
+    if (!fromAccount && assetAccounts[0]) setFromAccount(assetAccounts[0].id)
+    if (!toAccount && assetAccounts[1]) setToAccount(assetAccounts[1].id)
   }
 
   useEffect(() => { if (session) load() }, [session])
@@ -37,21 +38,23 @@ export function Transactions() {
     event.preventDefault()
     setMessage('')
     const value = Number(amount)
-    let debit = account
-    let credit = account
-    if (type === 'income') { debit = account; credit = category } // replaced below
-    if (type === 'transfer') { debit = toAccount; credit = fromAccount }
     if (!value || value <= 0 || !description.trim()) return setMessage('Enter a description and amount.')
 
-    // Income/expense use the asset account plus a category account. The current UI
-    // uses the selected account as the asset side; category-account mapping is
-    // finalized when category accounts are introduced in the next accounting layer.
-    if (type === 'income' || type === 'expense') {
-      const categoryAccount = accounts.find(a => a.account_type === (type === 'income' ? 'income' : 'expense'))
-      if (!categoryAccount) return setMessage(`Create an ${type} account first (e.g. "${type === 'income' ? 'Income' : 'Expenses'}").`)
-      if (type === 'income') { debit = account; credit = categoryAccount.id }
-      else { debit = categoryAccount.id; credit = account }
+    const assetAccounts = accounts.filter(a => !['income', 'expense'].includes(a.account_type))
+    let debit = account
+    let credit = account
+    if (type === 'transfer') { debit = toAccount; credit = fromAccount }
+    if (type === 'income') {
+      const incomeAccount = accounts.find(a => a.account_type === 'income')
+      if (!incomeAccount) return setMessage('Create an Income account first in Accounts.')
+      debit = account; credit = incomeAccount.id
     }
+    if (type === 'expense') {
+      const expenseAccount = accounts.find(a => a.account_type === 'expense')
+      if (!expenseAccount) return setMessage('Create an Expense account first in Accounts.')
+      debit = expenseAccount.id; credit = account
+    }
+    if (!assetAccounts.length || !debit || !credit || debit === credit) return setMessage('Choose valid, different accounts.')
 
     const { error } = await supabase.rpc('post_transaction', {
       p_transaction_date: new Date().toISOString(),
@@ -66,13 +69,14 @@ export function Transactions() {
     else { setMessage('Transaction posted.'); setDescription(''); setAmount(''); await load() }
   }
 
+  const assetAccounts = accounts.filter(a => !['income', 'expense'].includes(a.account_type))
   return <div className="page">
     <div className="page-header"><div><h2>Transactions</h2><p className="muted">Every movement becomes a balanced ledger entry.</p></div></div>
     <form className="panel form-grid" onSubmit={submit}>
       <label>Type<select value={type} onChange={e => setType(e.target.value as TransactionType)}><option value="expense">Expense</option><option value="income">Income</option><option value="transfer">Transfer</option></select></label>
       <label>Description<input value={description} onChange={e => setDescription(e.target.value)} placeholder="Jeep fare" required /></label>
       <label>Amount<input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required /></label>
-      {type !== 'transfer' ? <label>Account<select value={account} onChange={e => setAccount(e.target.value)}>{accounts.filter(a => !['income','expense'].includes(a.account_type)).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label> : <><label>From<select value={fromAccount} onChange={e => setFromAccount(e.target.value)}>{accounts.filter(a => !['income','expense'].includes(a.account_type)).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><label>To<select value={toAccount} onChange={e => setToAccount(e.target.value)}>{accounts.filter(a => !['income','expense'].includes(a.account_type)).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label></>}
+      {type !== 'transfer' ? <label>Account<select value={account} onChange={e => setAccount(e.target.value)}>{assetAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label> : <><label>From<select value={fromAccount} onChange={e => setFromAccount(e.target.value)}>{assetAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><label>To<select value={toAccount} onChange={e => setToAccount(e.target.value)}>{assetAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label></>}
       <label>Category<select value={category} onChange={e => setCategory(e.target.value)}><option value="">None</option>{categories.filter(c => c.category_type === type || c.category_type === 'other').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <button>Post transaction</button>
     </form>
