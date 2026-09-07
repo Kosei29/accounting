@@ -11,7 +11,15 @@
   window.openTxn=function(existing=null){ if(existing && (existing.debtId||existing.receivableId)){ alert('Special transactions are managed from the Debts or Receivables page.'); return; } return origOpenTxn(existing); };
   window.openDebtPayment=function(id){
     const d=debts.find(x=>x.id===id); if(!d||d.balance<=0)return;
-    modal(`<h2>Pay Debt</h2><div class="form"><label>Debt<input value="${esc(d.name)} — ${money(d.balance)} remaining" disabled></label><label>Amount Paid<input id="fix_dpa" type="number" min="1" max="${d.balance}" step="1"></label><label>Date<input id="fix_dpd" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Pay From<select id="fix_dpc">${accounts.map(a=>`<option value="${a.id}">${esc(a.name)} — ${money(a.balance)}</option>`).join('')}</select></label><label>Details<input id="fix_dpn" placeholder="Optional note"></label><div class="form-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="fixRecordDebtPayment('${id}')">Record Debt Payment</button></div></div>`);
+    const unlinked=transactions.filter(x=>x.type==='expense'&&x.category==='Debt Payment'&&!x.debtId);
+    const linkBox=unlinked.length?`<div class="account" style="margin-bottom:10px"><b>Existing unlinked Debt Payment</b><div class="debt-meta">You already have ${unlinked.length} payment transaction${unlinked.length>1?'s':''} not attached to a debt.</div><select id="fix_link_tx">${unlinked.map(x=>`<option value="${x.id}">${esc(x.date)} · ${money(x.amount)} · ${esc(x.description||'Debt Payment')}</option>`).join('')}</select><button class="btn secondary" style="margin-top:8px" onclick="fixLinkDebtPayment('${id}')">Link Existing Payment</button></div>`:'';
+    modal(`<h2>Pay Debt</h2><div class="form">${linkBox}<label>Debt<input value="${esc(d.name)} — ${money(d.balance)} remaining" disabled></label><label>Amount Paid<input id="fix_dpa" type="number" min="1" max="${d.balance}" step="1"></label><label>Date<input id="fix_dpd" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Pay From<select id="fix_dpc">${accounts.map(a=>`<option value="${a.id}">${esc(a.name)} — ${money(a.balance)}</option>`).join('')}</select></label><label>Details<input id="fix_dpn" placeholder="Optional note"></label><div class="form-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="fixRecordDebtPayment('${id}')">Record Debt Payment</button></div></div>`);
+  };
+  window.fixLinkDebtPayment=function(id){
+    const d=debts.find(x=>x.id===id), txId=document.getElementById('fix_link_tx')?.value, tx=transactions.find(x=>x.id===txId);
+    if(!d||!tx||tx.debtId)return alert('That payment cannot be linked.');
+    if(+tx.amount>d.balance)return alert('That payment is larger than this debt balance.');
+    tx.debtId=id; rebuild(); closeModal(); toast(`${money(tx.amount)} payment linked to ${d.name}`); nav('debts');
   };
   window.fixRecordDebtPayment=function(id){
     const d=debts.find(x=>x.id===id), amt=+document.getElementById('fix_dpa').value||0, acct=document.getElementById('fix_dpc').value, a=getAccount(acct);
