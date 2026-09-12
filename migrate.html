@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Accounting — Import Legacy Backup</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;background:#f7f7f7;color:#222}.card{background:#fff;padding:24px;border-radius:14px;box-shadow:0 2px 12px #0001;margin-bottom:18px}h1{margin-top:0}label{display:block;margin:12px 0 5px;font-weight:600}input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #ccc}input{width:100%;box-sizing:border-box}button{cursor:pointer;margin:8px 8px 0 0;background:#222;color:#fff}.secondary{background:#eee;color:#222}.danger{background:#9b2226}.muted{color:#666}.ok{color:#16733b}.err{color:#a11}.mono{font-family:ui-monospace,monospace;white-space:pre-wrap;background:#f3f3f3;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="card"><h1>Import Legacy Accounting Backup</h1><p class="muted">One-time migration tool. It imports the selected localStorage JSON backup into the current Accounting Supabase project. It never imports the old authentication token.</p></div>
+<div class="card">
+<h2>1. Sign in / create your current account</h2>
+<label>Email</label><input id="email" type="email" autocomplete="email">
+<label>Password</label><input id="password" type="password" autocomplete="current-password">
+<button id="signup" class="secondary">Create current account</button><button id="signin">Sign in</button>
+<p id="authmsg" class="muted"></p>
+</div>
+<div class="card">
+<h2>2. Select your backup</h2>
+<input id="file" type="file" accept=".txt,.json,application/json,text/plain">
+<p id="filemsg" class="muted">Choose the exported <b>Pasted text.txt</b> file. Do not edit it.</p>
+<button id="import" class="danger" disabled>IMPORT INTO SUPABASE</button>
+</div>
+<div class="card"><h2>Status</h2><div id="status" class="mono">Waiting…</div></div>
+<script>
+const SUPABASE_URL='https://tpwdzfwfijzgiwmrfaof.supabase.co';
+const SUPABASE_KEY='sb_publishable_dF6tguA5k_FKnQvAhMlD9g_q9RZUWin';
+const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id); let backup=null;
+function msg(text,cls=''){ $('status').textContent=text; $('status').className='mono '+cls; }
+async function showUser(){const {data:{user}}=await supabase.auth.getUser(); if(user){$('authmsg').textContent='Signed in. You can import the backup.';$('authmsg').className='ok';if(backup)$('import').disabled=false;return true} return false;}
+$('signup').onclick=async()=>{try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('Enter email and password.');const {error}=await supabase.auth.signUp({email,password,options:{data:{display_name:'Rylle'}}});if(error)throw error;$('authmsg').textContent='Account created. If email confirmation is enabled, confirm it, then sign in.';$('authmsg').className='ok';}catch(e){$('authmsg').textContent=e.message;$('authmsg').className='err'}};
+$('signin').onclick=async()=>{try{const {error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)throw error;$('authmsg').textContent='Signed in.';$('authmsg').className='ok';await showUser();}catch(e){$('authmsg').textContent=e.message;$('authmsg').className='err'}};
+$('file').onchange=async e=>{try{const f=e.target.files[0];if(!f)return;const text=await f.text();const raw=JSON.parse(text);const clean={};for(const [k,v] of Object.entries(raw)){if(k==='sb-reybalitebntwzkmujeo-auth-token')continue;try{clean[k]=typeof v==='string'?(JSON.parse(v)):v}catch{clean[k]=v}}backup=clean;$('filemsg').textContent='Backup loaded: '+f.name+' ('+Math.round(f.size/1024)+' KB). Authentication data excluded.';$('filemsg').className='ok';if(await showUser())$('import').disabled=false;msg('Backup parsed successfully. Ready to import.');}catch(e){backup=null;$('import').disabled=true;msg('Backup parse failed: '+e.message,'err')}};
+$('import').onclick=async()=>{if(!backup)return; if(!confirm('Import this backup into the current Supabase account? The import target must be empty. Your original backup file and old-device localStorage are not modified.'))return; $('import').disabled=true;msg('Importing… do not close this page.');try{const {data:{session}}=await supabase.auth.getSession();if(!session)throw Error('Not signed in.');const res=await fetch(SUPABASE_URL+'/functions/v1/legacy-import',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({backup})});const out=await res.json();if(!res.ok||out.error)throw Error(out.error||('HTTP '+res.status));msg('IMPORT COMPLETE\n\n'+JSON.stringify(out,null,2),'ok');}catch(e){$('import').disabled=false;msg('IMPORT FAILED\n\n'+e.message,'err')}};
+showUser();
+</script>
+</body></html>
